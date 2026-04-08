@@ -21,7 +21,7 @@
 html,body{height:100%;scroll-snap-type:y mandatory;overflow-y:scroll;scroll-behavior:smooth}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--white);cursor:none}
 
-
+/* CUSTOM CURSOR */
 .cursor{
   width:10px;height:10px;border-radius:50%;background:var(--teal);
   position:fixed;top:0;left:0;pointer-events:none;z-index:9999;
@@ -263,7 +263,7 @@ h1 .dim{color:var(--muted)}
 <nav>
   <div class="logo">Sell<b>owl</b></div>
   <div style="display:flex;align-items:center;gap:1rem;">
-    <div style="display:flex;align-items:center;gap:6px;font-size:0.75rem;color:var(--muted);border:1px solid var(--border);padding:0.4rem 0.9rem;border-radius:100px;">
+    <div id="viewBadge" style="display:flex;align-items:center;gap:6px;font-size:0.75rem;color:var(--muted);border:1px solid var(--border);padding:0.4rem 0.9rem;border-radius:100px;">
       <span style="width:6px;height:6px;border-radius:50%;background:var(--teal);display:inline-block;animation:blink 2s infinite;"></span>
       <span id="viewCount">...</span> views
     </div>
@@ -374,7 +374,7 @@ h1 .dim{color:var(--muted)}
     <p class="wl-sub">Be first in line when Sellowl launches at UW-Madison. Priority listing placement and a verified badge from day one.</p>
     <div class="wl-form" id="wlForm">
       <input type="text" id="nameIn" placeholder="Full name" />
-      <input type="email" id="emailIn" placeholder=".edu email address" />
+      <input type="email" id="emailIn" placeholder=".edu email address (optional)" />
       <select id="roleIn">
         <option value="" disabled selected>I am a student who is...</option>
         <option value="out">Moving out this semester</option>
@@ -396,35 +396,26 @@ h1 .dim{color:var(--muted)}
 </div>
 
 <script>
-/*
-  ─────────────────────────────────────────
-  FORMSPREE SETUP (2 min, free)
-  ─────────────────────────────────────────
-  1. Go to https://formspree.io/register
-  2. Sign up free with sellowl.dev@gmail.com
-  3. Click "New Form" → name it "Sellowl Waitlist"
-  4. Copy your Form ID (looks like: xyzabcde)
-  5. Replace YOUR_FORM_ID below with that ID
-  Every submission will email sellowl.dev@gmail.com
-  and appear in your Formspree dashboard.
-  ─────────────────────────────────────────
-*/
-const FORMSPREE_ID = 'mreovgnj';
+/* GOOGLE FORMS — entry IDs */
+const GF_URL  = 'https://docs.google.com/forms/d/e/1FAIpQLScbbuXBYopRGq91EcQI4OhO2oLzUq37SF0h7TdE03o3hnxcIw/formResponse';
+const GF_NAME  = 'entry.473597798';
+const GF_EMAIL = 'entry.853431171';
+const GF_ROLE  = 'entry.873306731';
 
-/*
-  ─────────────────────────────────────────
-  VIEW COUNTER (CountAPI — no signup needed)
-  Counts every page load automatically.
-  View your count at:
-  https://api.countapi.xyz/get/sellowl-uw/pageviews
-  ─────────────────────────────────────────
-*/
-fetch('https://api.countapi.xyz/hit/sellowl-uw/pageviews')
-  .then(r=>r.json())
-  .then(data=>{
-    const el=document.getElementById('viewCount');
-    if(el) el.textContent=data.value.toLocaleString();
-  }).catch(()=>{});
+/* VIEW COUNTER */
+(async()=>{
+  const el=document.getElementById('viewCount');
+  const badge=document.getElementById('viewBadge');
+  if(!el) return;
+  try{
+    const r=await fetch('https://api.counterapi.dev/v1/sellowl-uw/pageviews/up');
+    if(!r.ok) throw new Error();
+    const d=await r.json();
+    el.textContent=Number(d.count).toLocaleString();
+  } catch(e){
+    if(badge) badge.style.display='none';
+  }
+})();
 
 /* CURSOR */
 const cur=document.getElementById('cur');
@@ -443,53 +434,39 @@ function animRing(){
 animRing();
 
 document.querySelectorAll('button,.nav-btn').forEach(b=>{
-  b.addEventListener('mouseenter',()=>{
-    ring.style.opacity='0';
-  });
-  b.addEventListener('mouseleave',()=>{
-    ring.style.opacity='0.5';
-  });
+  b.addEventListener('mouseenter',()=>{ ring.style.opacity='0'; });
+  b.addEventListener('mouseleave',()=>{ ring.style.opacity='0.5'; });
 });
 
-/* FORM SUBMIT → FORMSPREE */
+/* FORM SUBMIT → GOOGLE FORMS (silent, no redirect) */
 async function submit(){
   const n=document.getElementById('nameIn').value.trim();
   const e=document.getElementById('emailIn').value.trim();
   const r=document.getElementById('roleIn').value;
   if(!n){alert('Please enter your name.');return;}
-  if(!e||!e.includes('@')){alert('Please enter a valid email.');return;}
+  if(e && !e.includes('@')){alert('Please enter a valid email.');return;}
   if(!r){alert('Please select your situation.');return;}
 
   const btn=document.querySelector('.wl-submit');
   btn.textContent='Sending...';
   btn.style.opacity='0.7';
 
-  if(FORMSPREE_ID==='YOUR_FORM_ID'){
-    /* TEMP: show success until Formspree is connected */
-    document.getElementById('wlForm').style.display='none';
-    document.getElementById('wlSuccess').style.display='block';
-    return;
-  }
+  const body=new FormData();
+  body.append(GF_NAME, n);
+  body.append(GF_EMAIL, e);
+  body.append(GF_ROLE, r);
 
+  /* Google Forms blocks CORS so we use no-cors — submission
+     still goes through, we just cannot read the response.
+     Show success immediately after firing. */
   try{
-    const res=await fetch(`https://formspree.io/f/${FORMSPREE_ID}`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Accept':'application/json'},
-      body:JSON.stringify({name:n,email:e,role:r,_subject:'New Sellowl Waitlist Signup'})
-    });
-    if(res.ok){
-      document.getElementById('wlForm').style.display='none';
-      document.getElementById('wlSuccess').style.display='block';
-    } else {
-      alert('Something went wrong. Please try again.');
-      btn.textContent='Join the waitlist';
-      btn.style.opacity='1';
-    }
-  } catch(err){
-    alert('Connection error. Please try again.');
-    btn.textContent='Join the waitlist';
-    btn.style.opacity='1';
-  }
+    fetch(GF_URL, {method:'POST', mode:'no-cors', body});
+  } catch(err){}
+
+  /* Show success screen regardless — Google Forms always
+     accepts the POST even with no-cors */
+  document.getElementById('wlForm').style.display='none';
+  document.getElementById('wlSuccess').style.display='block';
 }
 </script>
 </body>
