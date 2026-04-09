@@ -263,9 +263,8 @@ h1 .dim{color:var(--muted)}
 <nav>
   <div class="logo">Sell<b>owl</b></div>
   <div style="display:flex;align-items:center;gap:1rem;">
-    <div id="viewBadge" style="display:flex;align-items:center;gap:6px;font-size:0.75rem;color:var(--muted);border:1px solid var(--border);padding:0.4rem 0.9rem;border-radius:100px;">
-      <span style="width:6px;height:6px;border-radius:50%;background:var(--teal);display:inline-block;animation:blink 2s infinite;"></span>
-      <span id="viewCount">...</span> views
+    <div id="viewBadge" style="display:flex;align-items:center;">
+      <img src="https://hits.sh/kj0306.github.io/sellowl.svg?style=flat&label=views&color=00C896&labelColor=0A1220" alt="views" style="height:22px;border-radius:100px;" />
     </div>
     <button class="nav-btn" onclick="document.getElementById('waitlist').scrollIntoView({behavior:'smooth'})">Join waitlist</button>
   </div>
@@ -402,20 +401,7 @@ const GF_NAME  = 'entry.473597798';
 const GF_EMAIL = 'entry.853431171';
 const GF_ROLE  = 'entry.873306731';
 
-/* VIEW COUNTER */
-(async()=>{
-  const el=document.getElementById('viewCount');
-  const badge=document.getElementById('viewBadge');
-  if(!el) return;
-  try{
-    const r=await fetch('https://api.counterapi.dev/v1/sellowl-uw/pageviews/up');
-    if(!r.ok) throw new Error();
-    const d=await r.json();
-    el.textContent=Number(d.count).toLocaleString();
-  } catch(e){
-    if(badge) badge.style.display='none';
-  }
-})();
+/* VIEW COUNTER — tracked via hits.sh image badge in nav */
 
 /* CURSOR */
 const cur=document.getElementById('cur');
@@ -438,8 +424,8 @@ document.querySelectorAll('button,.nav-btn').forEach(b=>{
   b.addEventListener('mouseleave',()=>{ ring.style.opacity='0.5'; });
 });
 
-/* FORM SUBMIT → GOOGLE FORMS (silent, no redirect) */
-async function submit(){
+/* FORM SUBMIT → GOOGLE FORMS via hidden iframe (most reliable) */
+function submit(){
   const n=document.getElementById('nameIn').value.trim();
   const e=document.getElementById('emailIn').value.trim();
   const r=document.getElementById('roleIn').value;
@@ -451,26 +437,30 @@ async function submit(){
   btn.textContent='Sending...';
   btn.style.opacity='0.7';
 
-  const params=new URLSearchParams();
-  params.append('entry.473597798', n);
-  params.append('entry.853431171', e);
-  params.append('entry.873306731', r);
-  params.append('fvv','1');
-  params.append('pageHistory','0');
-  params.append('fbzx', Math.random().toString(36).slice(2));
+  document.getElementById('gf_name').value  = n;
+  document.getElementById('gf_email').value = e;
+  document.getElementById('gf_role').value  = r;
+  document.getElementById('gf_form').submit();
 
-  try{
-    await fetch(GF_URL, {
-      method:'POST',
-      mode:'no-cors',
-      headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body:params.toString()
-    });
-  } catch(err){}
-
-  document.getElementById('wlForm').style.display='none';
-  document.getElementById('wlSuccess').style.display='block';
+  setTimeout(()=>{
+    document.getElementById('wlForm').style.display='none';
+    document.getElementById('wlSuccess').style.display='block';
+  }, 800);
 }
 </script>
+
+<!-- HIDDEN IFRAME + FORM for Google Forms silent submit -->
+<iframe name="gf_iframe" id="gf_iframe" style="display:none;"></iframe>
+<form id="gf_form"
+  method="POST"
+  action="https://docs.google.com/forms/d/e/1FAIpQLScbbuXBYopRGq91EcQI4OhO2oLzUq37SF0h7TdE03o3hnxcIw/formResponse"
+  target="gf_iframe"
+  style="display:none;">
+  <input type="hidden" id="gf_name"  name="entry.473597798" value="">
+  <input type="hidden" id="gf_email" name="entry.853431171" value="">
+  <input type="hidden" id="gf_role"  name="entry.873306731" value="">
+  <input type="hidden" name="fvv" value="1">
+  <input type="hidden" name="pageHistory" value="0">
+</form>
 </body>
 </html>
